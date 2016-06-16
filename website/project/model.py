@@ -962,6 +962,8 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
 
     discourse_group_id = fields.StringField(default=None)
     discourse_topic_id = fields.StringField(default=None)
+    discourse_topic_public = fields.BooleanField(default=False)
+    discourse_post_id = fields.StringField(default=None)
 
     _meta = {
         'optimistic': True,
@@ -1003,6 +1005,10 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
     def target_type(self):
         """The object "type" used in the OSF v2 API."""
         return 'nodes'
+
+    # For Discourse API compatibility
+    def get_guid(self):
+        return self._id
 
     @property
     def root_target_page(self):
