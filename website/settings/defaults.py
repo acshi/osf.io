@@ -1774,6 +1774,7 @@ DISCOURSE_SERVER_SETTINGS = {'title': 'Open Science Framework',
                              'sso_overrides_username': 'true',
                              'sso_overrides_name': 'true',
                              'sso_overrides_avatar': 'true',
+                             'allow_uploaded_avatars': 'false',
                              'logout_redirect': DOMAIN + 'logout',
                              'cors_origins': DOMAIN,
                              'min_topic_title_length': '0',
@@ -1921,7 +1922,7 @@ header .title a:hover:after {
 }
 
 header {
-    margin-bottom: 0px;
+    margin-bottom: 0;
 }
 
 .d-header #site-logo {
@@ -1932,7 +1933,7 @@ header {
 }
 
 .d-header .contents {
-    margin: 6px ;
+    margin: 6px;
 }
 
 .desktop-view body #main {
@@ -1940,16 +1941,16 @@ header {
 }
 
 .d-header {
-    height: 51px ;
+    height: 51px;
 }
 
 .desktop-view body header.d-header {
   top: 59px;
-  padding-top: 0px;
+  padding-top: 0;
 }
 
 #main-outlet {
-    padding-top: 40px;
+    padding-top: 60px;
 }
 
 .d-header .icons .icon:hover{
@@ -1968,8 +1969,8 @@ header {
     line-height: 32px;
     display: inline-block;
 
-    padding-left: 4px ;
-    padding-right: 4px ;
+    padding-left: 4px;
+    padding-right: 4px;
 }
 
 .unread-private-messages {
@@ -1983,13 +1984,13 @@ header {
     }
 }
 
-img.avatar {
-    width: 26px !important ;
-    height: 26px !important ;
-    margin-top: 2px !important;
+#current-user img.avatar {
+    width: 26px;
+    height: 26px;
+    margin-top: 2px;
 }
 
-img.avatar a:after {
+#current-user img.avatar a:after {
     font-size: 18px;
     line-height: 25px;
 
@@ -2001,7 +2002,7 @@ img.avatar a:after {
 }
 
 .extra-info-wrapper {
-    display: none ;
+    display: none;
 }
 
 /* js dropdown navs */
@@ -2078,8 +2079,8 @@ img.avatar a:after {
     @media (min-width: 864px) {
         width: 850px;
     }
-    @media (min-width: 928px) {
-        width: 920px;
+    @media (min-width: 992px) {
+        width: 970px;
     }
 }
 
@@ -2087,7 +2088,6 @@ img.avatar a:after {
     background-color: #eee;
     box-shadow: 0 0 9px -1px #838383;
     overflow: hidden;
-    margin-left: auto;
 
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
@@ -2125,7 +2125,7 @@ img.avatar a:after {
         padding-right: 10px;
     }
 
-    @media (min-width: 928px) {
+    @media (min-width: 992px) {
         padding-left: 15px;
         padding-right: 15px;
     }
@@ -2137,8 +2137,8 @@ img.avatar a:after {
 }
 
 #project-header > ul > li > a.project-parent {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 17px;
+    padding-right: 17px;
 }
 
 #project-header > ul > li > a.project-name {
@@ -2166,10 +2166,14 @@ img.avatar a:after {
 }
 
 span.second.username {
-    display: none;
+    /*display: none;*/
 }
 
 .profiler-results {
+    display: none;
+}
+
+nav.post-controls button.share.private, button.share.private, button.invite-topic {
     display: none;
 }
                                 ''',
