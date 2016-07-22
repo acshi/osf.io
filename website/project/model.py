@@ -1825,7 +1825,7 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
                 children = children[99:]
 
         # For project public/private and contributors
-        discourse.sync_project(self)
+        #discourse.sync_project(self)
 
         # Return expected value for StoredObject::save
         return saved_fields
