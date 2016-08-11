@@ -9,6 +9,7 @@ import datetime
 import urlparse
 import warnings
 import jsonschema
+import requests
 
 import pytz
 from django.core.urlresolvers import reverse
@@ -1825,7 +1826,10 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
                 children = children[99:]
 
         # For project public/private and contributors
-        discourse.sync_project(self)
+        try:
+            discourse.sync_project(self)
+        except discourse.DiscourseException, requests.exceptions.ConnectionError:
+            logger.exception('Error syncing/creating Discourse project')
 
         # Return expected value for StoredObject::save
         return saved_fields

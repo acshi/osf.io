@@ -3,6 +3,7 @@ import logging
 import httplib as http
 import math
 from itertools import islice
+import requests
 
 from flask import request
 from modularodm import Q
@@ -374,7 +375,11 @@ def view_project(auth, node, **kwargs):
     ))
     ret.update(rubeus.collect_addon_assets(node))
 
-    ret['discourse_topic_id'] = discourse.get_or_create_topic_id(node)
+    try:
+        ret['discourse_topic_id'] = discourse.get_or_create_topic_id(node)
+    except discourse.DiscourseException, requests.exceptions.ConnectionError:
+        logger.exception('Error creating Discourse topic')
+        ret['discourse_topic_id'] = None
 
     return ret
 
@@ -675,6 +680,14 @@ def _view_project(node, auth, primary=False):
             messages = addon.before_page_load(node, user) or []
             for message in messages:
                 status.push_status_message(message, kind='info', dismissible=False, trust=True)
+
+    discourse_user_apikey = None
+    if user:
+        try:
+            discourse_user_apikey = discourse.get_user_apikey()
+        except discourse.DiscourseException, requests.exceptions.ConnectionError:
+            logger.exception('Error getting Discourse user API key')
+
     data = {
         'node': {
             'disapproval_link': disapproval_link,
@@ -784,7 +797,7 @@ def _view_project(node, auth, primary=False):
             for key, value in settings.NODE_CATEGORY_MAP.iteritems()
         ],
         'discourse_url': settings.DISCOURSE_SERVER_URL,
-        'discourse_apikey': discourse.get_user_apikey()
+        'discourse_apikey': discourse_user_apikey
     }
     return data
 
