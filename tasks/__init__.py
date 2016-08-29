@@ -261,12 +261,11 @@ def mongoserver(ctx, daemon=False, config=None):
     """Run the mongod process.
     """
     if not config:
-        platform_configs = {
-            'darwin': '/usr/local/etc/tokumx.conf',  # default for homebrew install
-            'linux': '/etc/tokumx.conf',
-        }
         platform = str(sys.platform).lower()
-        config = platform_configs.get(platform)
+        if platform == 'darwin':
+            config = '/usr/local/etc/tokumx.conf' # default for homebrew install
+        elif platform.startswith('linux'):
+            config = '/etc/tokumx.conf'
     port = settings.DB_PORT
     cmd = 'mongod --port {0}'.format(port)
     if config:
@@ -389,7 +388,7 @@ def rabbitmq(ctx):
     NOTE: this is for development only. The production environment should start
     the server as a daemon.
     """
-    ctx.run('rabbitmq-server', pty=True)
+    ctx.run('sudo rabbitmq-server', pty=True)
 
 
 @task(aliases=['elastic'])
