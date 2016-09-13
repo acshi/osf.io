@@ -374,13 +374,6 @@ def view_project(auth, node, **kwargs):
         config_entry='widget'
     ))
     ret.update(rubeus.collect_addon_assets(node))
-
-    try:
-        ret['discourse_topic_id'] = discourse.get_or_create_topic_id(node)
-    except (discourse.DiscourseException, requests.exceptions.ConnectionError):
-        logger.exception('Error creating Discourse topic')
-        ret['discourse_topic_id'] = None
-
     return ret
 
 # Reorder components
@@ -799,6 +792,13 @@ def _view_project(node, auth, primary=False):
         'discourse_url': settings.DISCOURSE_SERVER_URL,
         'discourse_apikey': discourse_user_apikey
     }
+
+    try:
+        data['discourse_topic_id'] = discourse.get_or_create_topic_id(node)
+    except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+        logger.exception('Error creating Discourse topic')
+        data['discourse_topic_id'] = None
+
     return data
 
 def get_affiliated_institutions(obj):
