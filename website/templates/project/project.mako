@@ -234,7 +234,9 @@
 
 <%include file="project/modal_add_pointer.mako"/>
 
+% if not node['anonymous']:
 <%include file="include/comment_pane_template.mako"/>
+% endif
 
 % if node['is_preprint']:
 <div class="row">
