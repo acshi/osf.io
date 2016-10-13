@@ -9,6 +9,7 @@ import datetime
 import urlparse
 import warnings
 import jsonschema
+import requests
 
 import pytz
 from django.core.urlresolvers import reverse
@@ -19,7 +20,7 @@ from modularodm import fields
 from modularodm.validators import MaxLengthValidator
 from modularodm.exceptions import KeyExistsException, NoResultsFound, ValidationValueError
 
-from framework import status
+from framework import status, discourse
 from framework.mongo import ObjectId, DummyRequest
 from framework.mongo import StoredObject
 from framework.mongo import validators
@@ -958,6 +959,18 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
 
     alternative_citations = fields.ForeignField('alternativecitation', list=True)
 
+    notification_settings_dirty = fields.BooleanField(default=False)
+
+    discourse_group_id = fields.StringField(default=None)
+    discourse_group_public = fields.BooleanField(default=False)
+    discourse_group_users = fields.StringField(default=None, list=True)
+    discourse_view_only_keys = fields.StringField(default=None, list=True)
+    discourse_topic_id = fields.StringField(default=None)
+    discourse_topic_title = fields.StringField(default=None)
+    discourse_topic_parent_guids = fields.StringField(default=None, list=True)
+    discourse_topic_deleted = fields.BooleanField(default=False)
+    discourse_post_id = fields.StringField(default=None)
+
     _meta = {
         'optimistic': True,
     }
@@ -998,6 +1011,16 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
     def target_type(self):
         """The object "type" used in the OSF v2 API."""
         return 'nodes'
+
+    # For Discourse API compatibility
+    @property
+    def guid_id(self):
+        return self._id
+
+    # For Discourse API compatibility
+    @property
+    def label(self):
+        return self.title
 
     @property
     def root_target_page(self):
@@ -1802,6 +1825,12 @@ class Node(GuidStoredObject, AddonModelMixin, IdentifierMixin, Commentable, Spam
                 batch = children[:99]
                 Node.bulk_update_search(batch)
                 children = children[99:]
+
+        # For project public/private and contributors
+        try:
+            discourse.sync_project(self)
+        except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+            logger.exception('Error syncing/creating Discourse project')
 
         # Return expected value for StoredObject::save
         return saved_fields

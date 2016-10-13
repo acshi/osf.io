@@ -2,6 +2,7 @@
 import datetime
 import furl
 import httplib as http
+import requests
 
 import markupsafe
 from flask import request
@@ -12,7 +13,7 @@ from modularodm.exceptions import NoResultsFound
 from modularodm.exceptions import ValidationError
 from modularodm.exceptions import ValidationValueError
 
-from framework import forms, status
+from framework import forms, status, discourse
 from framework import auth as framework_auth
 from framework.auth import exceptions
 from framework.auth import cas, campaigns
@@ -33,6 +34,9 @@ from website.util.time import throttle_period_expired
 from website.models import User
 from website.util import web_url_for
 from website.util.sanitize import strip_html
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 @collect_auth
@@ -264,7 +268,6 @@ def auth_login(auth, **kwargs):
 
     if next_url and must_login_warning:
         status.push_status_message(language.MUST_LOGIN, trust=False)
-
     # set login_url to form action, upon successful authentication specifically w/o logout=True,
     # allows for next to be followed or a redirect to the dashboard.
     redirect_url = web_url_for('auth_login', next=next_url, _absolute=True)
@@ -292,6 +295,10 @@ def auth_logout(redirect_url=None, **kwargs):
     :param redirect_url: url to redirect user after CAS logout, default is 'goodbye'
     :return:
     """
+    try:
+        discourse.logout()
+    except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+        logger.exception('Error logging user out of Discourse');
 
     # OSF tells CAS where it wants to be redirected back after successful logout. However, CAS logout flow
     # may not respect this url if user is authenticated through remote IdP such as institution login

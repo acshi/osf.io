@@ -1,4 +1,5 @@
 <%block name="nav">
+<% from website import settings %>
 <link rel="stylesheet" href='/static/css/nav.css'>
 <div class="osf-nav-wrapper">
 
@@ -67,6 +68,7 @@
                   <a href="${web_url_for('auth_logout')}"><i class="fa fa-sign-out fa-lg p-r-xs"></i> Log out</a>
               </li>
 
+
           </ul>
         </li>
         % elif allow_login:
@@ -95,6 +97,46 @@
 
 
 </nav>
+
+<script>
+//doesnt block the load event
+function discourseAutoLogin(){
+    // Ensure the user is automatically logged into the forum
+    var discourseLoggedIn = false;
+
+    if(typeof(Storage) !== "undefined") {
+        if (contextVars.currentUser.id) {
+            discourseLoggedIn = localStorage.discourseLoggedIn == "true";
+        } else {
+            localStorage.discourseLoggedIn = "false";
+        }
+    }
+
+    if (contextVars.currentUser.id && !discourseLoggedIn) {
+        var i = document.createElement("iframe");
+        i.style.display = 'none';
+        i.src = '${settings.DISCOURSE_SERVER_URL}/session/sso';
+        i.addEventListener('load', function(e) {
+            this.parentNode.removeChild(this);
+            if(typeof(Storage) !== "undefined") {
+                localStorage.discourseLoggedIn = "true";
+            }
+        });
+        document.body.appendChild(i);
+    }
+};
+
+// Check for browser support of event handling capability
+if (window.addEventListener) {
+    window.addEventListener("load", discourseAutoLogin, false);
+} else if (window.attachEvent) {
+    window.attachEvent("onload", discourseAutoLogin);
+} else {
+    window.onload = discourseAutoLogin;
+}
+
+</script>
+
     <!-- ko ifnot: onSearchPage -->
         <%include file='./search_bar.mako' />
     <!-- /ko -->

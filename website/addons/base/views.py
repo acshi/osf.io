@@ -3,7 +3,7 @@ import httplib
 import os
 import uuid
 import markupsafe
-
+import requests
 
 from flask import make_response
 from flask import redirect
@@ -15,7 +15,7 @@ import jwt
 from modularodm import Q
 from modularodm.exceptions import NoResultsFound
 
-from framework import sentry
+from framework import sentry, discourse
 from framework.auth import Auth
 from framework.auth import cas
 from framework.auth import oauth_scopes
@@ -41,6 +41,9 @@ from website.util import rubeus
 
 # import so that associated listener is instantiated and gets emails
 from website.notifications.events.files import FileEvent  # noqa
+
+import logging
+logger = logging.getLogger(__name__)
 
 ERROR_MESSAGES = {'FILE_GONE': u'''
 <style>
@@ -722,6 +725,14 @@ def addon_view_file(auth, node, file_node, version):
     })
 
     ret.update(rubeus.collect_addon_assets(node))
+
+    ret['discourse_url'] = settings.DISCOURSE_SERVER_URL
+    try:
+        ret['discourse_topic_id'] = discourse.get_or_create_topic_id(file_node)
+    except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+        logger.exception('Error creating Discourse topic')
+        ret['discourse_topic_id'] = None
+
     return ret
 
 

@@ -12,6 +12,7 @@ from modularodm import fields, Q
 from modularodm.exceptions import NoResultsFound
 from dateutil.parser import parse as parse_date
 
+from framework import discourse
 from framework.guid.model import Guid
 from framework.mongo import StoredObject
 from framework.mongo.utils import unique_on
@@ -64,6 +65,12 @@ class TrashedFileNode(StoredObject, Commentable):
     name = fields.StringField(required=True)
     path = fields.StringField(required=True)
     materialized_path = fields.StringField(required=True)
+
+    discourse_topic_id = fields.StringField(default=None)
+    discourse_topic_title = fields.StringField(default=None)
+    discourse_topic_parent_guids = fields.StringField(default=None, list=True)
+    discourse_topic_deleted = fields.BooleanField(default=False)
+    discourse_post_id = fields.StringField(dafault=None)
 
     checkout = fields.AbstractForeignField('User')
     deleted_by = fields.AbstractForeignField('User')
@@ -130,6 +137,11 @@ class TrashedFileNode(StoredObject, Commentable):
             for child in TrashedFileNode.find(Q('parent', 'eq', self)):
                 child.restore(recursive=recursive, parent=restored)
 
+        try:
+            discourse.undelete_topic(restored)
+        except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+            logger.exception('Error undeleting Discourse topic')
+
         TrashedFileNode.remove_one(self)
         return restored
 
@@ -144,6 +156,17 @@ class TrashedFileNode(StoredObject, Commentable):
             return Guid.find(Q('referent', 'eq', self))[0]
         except IndexError:
             return None
+
+    # for Discourse compatibility
+    @property
+    def guid_id(self):
+        guid_obj = self.get_guid()
+        return guid_obj._id if guid_obj else None
+
+    # For Discourse API compatibility
+    @property
+    def label(self):
+        return self.name
 
 @unique_on(['node', 'name', 'parent', 'is_file', 'provider', 'path'])
 class StoredFileNode(StoredObject, Commentable):
@@ -196,6 +219,12 @@ class StoredFileNode(StoredObject, Commentable):
     name = fields.StringField(required=True)
     path = fields.StringField(required=True)
     materialized_path = fields.StringField(required=True)
+
+    discourse_topic_id = fields.StringField(default=None)
+    discourse_topic_title = fields.StringField(default=None)
+    discourse_topic_parent_guids = fields.StringField(default=None, list=True)
+    discourse_topic_deleted = fields.BooleanField(default=False)
+    discourse_post_id = fields.StringField(dafault=None)
 
     # The User that has this file "checked out"
     # Should only be used for OsfStorage
@@ -271,6 +300,27 @@ class StoredFileNode(StoredObject, Commentable):
             if not create:
                 return None
         return Guid.generate(self)
+
+    # for Discourse compatibility
+    @property
+    def guid_id(self):
+        guid_obj = self.get_guid()
+        return guid_obj._id if guid_obj else None
+
+    # For Discourse API compatibility
+    @property
+    def label(self):
+        return self.name
+
+    def save(self):
+        value = super(StoredFileNode, self).save()
+        # keep discourse up to date. It will be a NOP if everything is synced already.
+        if self.discourse_topic_id:
+            try:
+                discourse.sync_topic(self)
+            except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+                logger.exception('Error syncing/creating Discourse topic')
+        return value
 
 
 class FileNodeMeta(type):
@@ -502,6 +552,7 @@ class FileNode(object):
             'path': self.path,
             'name': self.name,
             'kind': self.kind,
+            'discourse_topic_id': self.discourse_topic_id,
         }
 
     def generate_waterbutler_url(self, **kwargs):
@@ -517,6 +568,11 @@ class FileNode(object):
         and remove it from StoredFileNode
         :param user User or None: The user that deleted this FileNode
         """
+        try:
+            discourse.delete_topic(self)
+        except (discourse.DiscourseException, requests.exceptions.ConnectionError):
+            logger.exception('Error deleting Discourse topic')
+
         trashed = self._create_trashed(user=user, parent=parent)
         self._repoint_guids(trashed)
         self.node.save()
@@ -558,7 +614,11 @@ class FileNode(object):
             versions=self.versions,
             last_touched=self.last_touched,
             materialized_path=self.materialized_path,
-
+            discourse_topic_id=self.discourse_topic_id,
+            discourse_topic_title=self.discourse_topic_title,
+            discourse_topic_parent_guids=self.discourse_topic_parent_guids,
+            discourse_topic_deleted=self.discourse_topic_deleted,
+            discourse_post_id=self.discourse_post_id,
             deleted_by=user
         )
         if save:
